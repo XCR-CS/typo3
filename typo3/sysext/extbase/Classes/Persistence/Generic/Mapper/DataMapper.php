@@ -370,7 +370,22 @@ class DataMapper
     protected function getNonEmptyRelationValue(DomainObjectInterface $parentObject, $propertyName, $fieldValue)
     {
         $query = $this->getPreparedQuery($parentObject, $propertyName, $fieldValue);
-        return $query->execute();
+        $queryResult = $query->execute();
+        if (!str_contains($fieldValue, ',')) {
+            return $queryResult;
+        }
+        $indexed = [];
+        foreach($queryResult->toArray() as $object){
+            $indexed[$object->getUid()] = $object;
+            $indexed[$object->_getProperty('_localizedUid')] = $object;
+        }
+        $result = GeneralUtility::makeInstance(ObjectStorage::class);
+        foreach(GeneralUtility::intExplode(',', $fieldValue) as $uid){
+            if (isset($indexed[$uid])) {
+                $result->attach($indexed[$uid]);
+            }
+        }
+        return $result;
     }
 
     /**
